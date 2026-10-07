@@ -23,7 +23,7 @@ permissions:
 
 env:
   # renovate: datasource=github-releases depName=github/safe-settings
-  SAFE_SETTINGS_VERSION: 2.1.18
+  SAFE_SETTINGS_VERSION: 3.0.0
   SAFE_SETTINGS_DIR: ${{ github.workspace }}/.safe-settings
 
 jobs:
@@ -31,6 +31,11 @@ jobs:
     name: Reconcile org repository settings
     runs-on: ubuntu-26.04
     steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
       - name: Checkout safe-settings
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -58,7 +63,7 @@ jobs:
           owner: ${{ github.repository_owner }}
           permission-metadata: read
 
-      # Archived repos reject the PATCH; private repos and forks don't need it.
+      # Private repos and forks are managed separately.
       - name: Generate deployment-settings.yml
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
@@ -68,8 +73,8 @@ jobs:
             echo '---'
             echo 'restrictedRepos:'
             echo '  exclude:'
-            gh repo list "$OWNER" --limit 200 --json name,isArchived,isFork,visibility \
-              --jq '.[] | select(.isArchived or .isFork or .visibility != "PUBLIC") | "    - " + .name'
+            gh repo list "$OWNER" --limit 200 --json name,isFork,visibility \
+              --jq '.[] | select(.isFork or .visibility != "PUBLIC") | "    - " + .name'
           } > deployment-settings.yml
           cat deployment-settings.yml
 
